@@ -1,10 +1,126 @@
-import { useAudioStore } from '../store/useAudioStore';
+import { useAudioStore, TrackFX } from '../store/useAudioStore';
 import toWav from 'audiobuffer-to-wav';
+
+class TrackFXChain {
+  public input: GainNode;
+  public output: GainNode;
+  
+  private eqLow: BiquadFilterNode;
+  private eqMid: BiquadFilterNode;
+  private eqHigh: BiquadFilterNode;
+  
+  private delayNode: DelayNode;
+  private delayFeedback: GainNode;
+  private delayWet: GainNode;
+  
+  private reverbNode: ConvolverNode;
+  private reverbWet: GainNode;
+  private currentReverbDecay: number = 0;
+  private ctx: BaseAudioContext;
+
+  constructor(ctx: BaseAudioContext) {
+    this.ctx = ctx;
+    this.input = ctx.createGain();
+    this.output = ctx.createGain();
+
+    // EQ
+    this.eqLow = ctx.createBiquadFilter();
+    this.eqLow.type = 'lowshelf';
+    this.eqLow.frequency.value = 250;
+
+    this.eqMid = ctx.createBiquadFilter();
+    this.eqMid.type = 'peaking';
+    this.eqMid.frequency.value = 1000;
+    this.eqMid.Q.value = 1;
+
+    this.eqHigh = ctx.createBiquadFilter();
+    this.eqHigh.type = 'highshelf';
+    this.eqHigh.frequency.value = 4000;
+
+    // Delay
+    this.delayNode = ctx.createDelay(5.0);
+    this.delayFeedback = ctx.createGain();
+    this.delayWet = ctx.createGain();
+
+    // Reverb
+    this.reverbNode = ctx.createConvolver();
+    this.reverbWet = ctx.createGain();
+
+    // Connect EQ
+    this.input.connect(this.eqLow);
+    this.eqLow.connect(this.eqMid);
+    this.eqMid.connect(this.eqHigh);
+
+    // Dry signal path
+    this.eqHigh.connect(this.output);
+
+    // Delay path
+    this.eqHigh.connect(this.delayNode);
+    this.delayNode.connect(this.delayFeedback);
+    this.delayFeedback.connect(this.delayNode);
+    this.delayNode.connect(this.delayWet);
+    this.delayWet.connect(this.output);
+
+    // Reverb path
+    this.eqHigh.connect(this.reverbNode);
+    this.reverbNode.connect(this.reverbWet);
+    this.reverbWet.connect(this.output);
+  }
+
+  private generateImpulseResponse(duration: number): AudioBuffer {
+    const sampleRate = this.ctx.sampleRate;
+    const length = Math.max(1, sampleRate * duration);
+    const impulse = this.ctx.createBuffer(2, length, sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const decay = Math.exp(-i / (sampleRate * (duration / 5))); 
+        channelData[i] = (Math.random() * 2 - 1) * decay;
+      }
+    }
+    return impulse;
+  }
+
+  public applySettings(fx: TrackFX) {
+    // EQ
+    if (fx.eq.enabled) {
+      this.eqLow.gain.value = fx.eq.low;
+      this.eqMid.gain.value = fx.eq.mid;
+      this.eqHigh.gain.value = fx.eq.high;
+    } else {
+      this.eqLow.gain.value = 0;
+      this.eqMid.gain.value = 0;
+      this.eqHigh.gain.value = 0;
+    }
+
+    // Delay
+    if (fx.delay.enabled) {
+      this.delayNode.delayTime.value = fx.delay.time;
+      this.delayFeedback.gain.value = fx.delay.feedback;
+      this.delayWet.gain.value = fx.delay.mix;
+    } else {
+      this.delayWet.gain.value = 0;
+      this.delayFeedback.gain.value = 0;
+    }
+
+    // Reverb
+    if (fx.reverb.enabled) {
+      this.reverbWet.gain.value = fx.reverb.mix;
+      if (this.currentReverbDecay !== fx.reverb.decay) {
+        this.reverbNode.buffer = this.generateImpulseResponse(fx.reverb.decay);
+        this.currentReverbDecay = fx.reverb.decay;
+      }
+    } else {
+      this.reverbWet.gain.value = 0;
+    }
+  }
+}
 
 class AudioEngine {
   private ctx: AudioContext;
   private masterGain: GainNode;
-  private trackGains: Map<string, GainNode> = new Map();
+  private trackChains: Map<string, { fxChain: TrackFXChain; trackGain: GainNode }> = new Map();
   private activeSources: Map<string, AudioBufferSourceNode[]> = new Map();
   private playStartTime: number = 0;
   private playheadOffset: number = 0;
@@ -75,17 +191,23 @@ class AudioEngine {
     const isAnySolo = tracks.some((t) => t.solo);
 
     tracks.forEach((track) => {
-      // Create or update track gain
-      let trackGain = this.trackGains.get(track.id);
-      if (!trackGain) {
-        trackGain = this.ctx.createGain();
+      // Create or update track chain
+      let chain = this.trackChains.get(track.id);
+      if (!chain) {
+        const fxChain = new TrackFXChain(this.ctx);
+        const trackGain = this.ctx.createGain();
+        fxChain.output.connect(trackGain);
         trackGain.connect(this.masterGain);
-        this.trackGains.set(track.id, trackGain);
+        chain = { fxChain, trackGain };
+        this.trackChains.set(track.id, chain);
       }
+
+      // Apply FX
+      chain.fxChain.applySettings(track.fx);
 
       // Apply volume, mute, solo
       const isMuted = track.muted || (isAnySolo && !track.solo);
-      trackGain.gain.value = isMuted ? 0 : track.volume;
+      chain.trackGain.gain.value = isMuted ? 0 : track.volume;
 
       const sources: AudioBufferSourceNode[] = [];
 
@@ -99,7 +221,7 @@ class AudioEngine {
 
         const source = this.ctx.createBufferSource();
         source.buffer = clip.buffer;
-        source.connect(trackGain);
+        source.connect(chain!.fxChain.input);
 
         let startDelay = 0;
         let offset = region.clipOffset;
@@ -162,10 +284,17 @@ class AudioEngine {
   }
 
   public updateTrackVolume(trackId: string, volume: number, muted: boolean, solo: boolean, isAnySolo: boolean) {
-    const trackGain = this.trackGains.get(trackId);
-    if (trackGain) {
+    const chain = this.trackChains.get(trackId);
+    if (chain) {
       const isMuted = muted || (isAnySolo && !solo);
-      trackGain.gain.value = isMuted ? 0 : volume;
+      chain.trackGain.gain.value = isMuted ? 0 : volume;
+    }
+  }
+
+  public updateTrackFX(trackId: string, fx: TrackFX) {
+    const chain = this.trackChains.get(trackId);
+    if (chain) {
+      chain.fxChain.applySettings(fx);
     }
   }
 
@@ -181,9 +310,14 @@ class AudioEngine {
     const isAnySolo = state.tracks.some((t) => t.solo);
 
     state.tracks.forEach((track) => {
+      const fxChain = new TrackFXChain(offlineCtx);
+      fxChain.applySettings(track.fx);
+      
       const trackGain = offlineCtx.createGain();
       const isMuted = track.muted || (isAnySolo && !track.solo);
       trackGain.gain.value = isMuted ? 0 : track.volume;
+      
+      fxChain.output.connect(trackGain);
       trackGain.connect(offlineCtx.destination);
 
       track.regions.forEach((region) => {
@@ -195,7 +329,7 @@ class AudioEngine {
 
         const source = offlineCtx.createBufferSource();
         source.buffer = clip.buffer;
-        source.connect(trackGain);
+        source.connect(fxChain.input);
         
         // Calculate how much of the region fits within the duration
         const availableDuration = duration - region.startTime;
@@ -219,9 +353,14 @@ class AudioEngine {
     const isAnySolo = state.tracks.some((t) => t.solo);
 
     state.tracks.forEach((track) => {
+      const fxChain = new TrackFXChain(offlineCtx);
+      fxChain.applySettings(track.fx);
+      
       const trackGain = offlineCtx.createGain();
       const isMuted = track.muted || (isAnySolo && !track.solo);
       trackGain.gain.value = isMuted ? 0 : track.volume;
+      
+      fxChain.output.connect(trackGain);
       trackGain.connect(offlineCtx.destination);
 
       track.regions.forEach((region) => {
@@ -233,7 +372,7 @@ class AudioEngine {
 
         const source = offlineCtx.createBufferSource();
         source.buffer = clip.buffer;
-        source.connect(trackGain);
+        source.connect(fxChain.input);
         
         // Calculate how much of the region fits within the duration
         const availableDuration = duration - region.startTime;

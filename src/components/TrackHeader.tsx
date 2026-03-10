@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function TrackHeader({ track }: Props) {
-  const { updateTrack, deleteTrack, tracks } = useAudioStore();
+  const { updateTrack, deleteTrack, tracks, selectedFxTrackId, setSelectedFxTrack } = useAudioStore();
 
   const handleMute = () => {
     const newMuted = !track.muted;
@@ -36,6 +36,9 @@ export default function TrackHeader({ track }: Props) {
     const isAnySolo = tracks.some((t) => t.solo);
     engine.updateTrackVolume(track.id, volume, track.muted, track.solo, isAnySolo);
   };
+
+  const hasActiveFx = track.fx.eq.enabled || track.fx.delay.enabled || track.fx.reverb.enabled;
+  const isFxPanelOpen = selectedFxTrackId === track.id;
 
   return (
     <div className="w-64 h-full bg-ripple-panel border-r border-ripple-cyan/20 shrink-0 p-3 flex flex-col justify-between group">
@@ -71,6 +74,18 @@ export default function TrackHeader({ track }: Props) {
           }`}
         >
           S
+        </button>
+        <button
+          onClick={() => setSelectedFxTrack(isFxPanelOpen ? null : track.id)}
+          className={`px-2 h-6 rounded text-xs font-bold transition-colors ml-auto ${
+            isFxPanelOpen 
+              ? 'bg-ripple-cyan text-ripple-bg' 
+              : hasActiveFx 
+                ? 'bg-ripple-cyan/30 text-ripple-cyan border border-ripple-cyan/50' 
+                : 'bg-ripple-cyan/10 text-ripple-muted hover:bg-ripple-cyan/20 hover:text-ripple-text'
+          }`}
+        >
+          FX
         </button>
       </div>
 

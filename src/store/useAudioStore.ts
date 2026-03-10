@@ -18,6 +18,12 @@ export interface Region {
   duration: number;
 }
 
+export interface TrackFX {
+  eq: { low: number; mid: number; high: number; enabled: boolean };
+  delay: { time: number; feedback: number; mix: number; enabled: boolean };
+  reverb: { decay: number; mix: number; enabled: boolean };
+}
+
 export interface Track {
   id: string;
   name: string;
@@ -25,6 +31,7 @@ export interface Track {
   muted: boolean;
   solo: boolean;
   regions: Region[];
+  fx: TrackFX;
 }
 
 export interface AudioState {
@@ -38,6 +45,7 @@ export interface AudioState {
   isPlaying: boolean;
   clipboard: Region | null;
   selectedRegionId: string | null;
+  selectedFxTrackId: string | null;
   duration: number;
   pixelsPerSecond: number;
 
@@ -45,6 +53,7 @@ export interface AudioState {
   addClip: (clip: AudioClip) => void;
   addTrack: () => void;
   updateTrack: (id: string, updates: Partial<Track>) => void;
+  updateTrackFX: (id: string, fxUpdates: Partial<TrackFX>) => void;
   deleteTrack: (id: string) => void;
   addRegion: (trackId: string, region: Omit<Region, 'id' | 'trackId'>) => void;
   updateRegion: (id: string, updates: Partial<Region>) => void;
@@ -52,12 +61,19 @@ export interface AudioState {
   setPlayheadPosition: (pos: number) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   selectRegion: (id: string | null) => void;
+  setSelectedFxTrack: (id: string | null) => void;
   copyRegion: () => void;
   pasteRegion: () => void;
   splitRegion: () => void;
   setDuration: (duration: number) => void;
   setPixelsPerSecond: (pixels: number) => void;
 }
+
+const defaultFX: TrackFX = {
+  eq: { low: 0, mid: 0, high: 0, enabled: false },
+  delay: { time: 0.3, feedback: 0.4, mix: 0.3, enabled: false },
+  reverb: { decay: 2.0, mix: 0.3, enabled: false },
+};
 
 export const useAudioStore = create<AudioState>()(
   temporal(
@@ -74,6 +90,7 @@ export const useAudioStore = create<AudioState>()(
           muted: false,
           solo: false,
           regions: [],
+          fx: { ...defaultFX },
         },
       ],
       clips: {},
@@ -81,6 +98,7 @@ export const useAudioStore = create<AudioState>()(
       isPlaying: false,
       clipboard: null,
       selectedRegionId: null,
+      selectedFxTrackId: null,
       duration: 60, // Default 60 seconds timeline
       pixelsPerSecond: 50,
 
@@ -98,6 +116,7 @@ export const useAudioStore = create<AudioState>()(
               muted: false,
               solo: false,
               regions: [],
+              fx: { ...defaultFX },
             },
           ],
         })),
@@ -107,9 +126,17 @@ export const useAudioStore = create<AudioState>()(
           tracks: state.tracks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
         })),
 
+      updateTrackFX: (id, fxUpdates) =>
+        set((state) => ({
+          tracks: state.tracks.map((t) =>
+            t.id === id ? { ...t, fx: { ...t.fx, ...fxUpdates } } : t
+          ),
+        })),
+
       deleteTrack: (id) =>
         set((state) => ({
           tracks: state.tracks.filter((t) => t.id !== id),
+          selectedFxTrackId: state.selectedFxTrackId === id ? null : state.selectedFxTrackId,
         })),
 
       addRegion: (trackId, region) =>
@@ -174,6 +201,8 @@ export const useAudioStore = create<AudioState>()(
       setIsPlaying: (isPlaying) => set({ isPlaying }),
 
       selectRegion: (id) => set({ selectedRegionId: id }),
+
+      setSelectedFxTrack: (id) => set({ selectedFxTrackId: id }),
 
       copyRegion: () => {
         const { tracks, selectedRegionId } = get();
