@@ -173,9 +173,9 @@ class AudioEngine {
     return await this.ctx.decodeAudioData(arrayBuffer);
   }
 
-  public async exportWav(): Promise<Blob> {
+  public async exportWav(customDuration?: number): Promise<Blob> {
     const state = useAudioStore.getState();
-    const duration = this.getProjectDuration(state);
+    const duration = customDuration !== undefined ? customDuration : this.getProjectDuration(state);
     
     const offlineCtx = new OfflineAudioContext(2, 44100 * duration, 44100);
     const isAnySolo = state.tracks.some((t) => t.solo);
@@ -190,10 +190,18 @@ class AudioEngine {
         const clip = state.clips[region.sourceClipId];
         if (!clip || !clip.buffer) return;
 
+        // Skip regions that start after the custom duration
+        if (region.startTime >= duration) return;
+
         const source = offlineCtx.createBufferSource();
         source.buffer = clip.buffer;
         source.connect(trackGain);
-        source.start(region.startTime, region.clipOffset, region.duration);
+        
+        // Calculate how much of the region fits within the duration
+        const availableDuration = duration - region.startTime;
+        const actualDuration = Math.min(region.duration, availableDuration);
+        
+        source.start(region.startTime, region.clipOffset, actualDuration);
       });
     });
 
@@ -202,9 +210,9 @@ class AudioEngine {
     return new Blob([new DataView(wavArrayBuffer)], { type: 'audio/wav' });
   }
 
-  public async exportMp3(): Promise<Blob> {
+  public async exportMp3(customDuration?: number): Promise<Blob> {
     const state = useAudioStore.getState();
-    const duration = this.getProjectDuration(state);
+    const duration = customDuration !== undefined ? customDuration : this.getProjectDuration(state);
     
     // Render to mono for simplicity with lamejs in this example, or mix down
     const offlineCtx = new OfflineAudioContext(1, 44100 * duration, 44100);
@@ -220,10 +228,18 @@ class AudioEngine {
         const clip = state.clips[region.sourceClipId];
         if (!clip || !clip.buffer) return;
 
+        // Skip regions that start after the custom duration
+        if (region.startTime >= duration) return;
+
         const source = offlineCtx.createBufferSource();
         source.buffer = clip.buffer;
         source.connect(trackGain);
-        source.start(region.startTime, region.clipOffset, region.duration);
+        
+        // Calculate how much of the region fits within the duration
+        const availableDuration = duration - region.startTime;
+        const actualDuration = Math.min(region.duration, availableDuration);
+        
+        source.start(region.startTime, region.clipOffset, actualDuration);
       });
     });
 
