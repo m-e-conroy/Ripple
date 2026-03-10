@@ -38,17 +38,17 @@ export default function TrackHeader({ track }: Props) {
   };
 
   return (
-    <div className="w-64 h-full bg-zinc-800 border-r border-zinc-700 shrink-0 p-3 flex flex-col justify-between group">
+    <div className="w-64 h-full bg-ripple-panel border-r border-ripple-cyan/20 shrink-0 p-3 flex flex-col justify-between group">
       <div className="flex items-center justify-between">
         <input
           type="text"
           value={track.name}
           onChange={(e) => updateTrack(track.id, { name: e.target.value })}
-          className="bg-transparent text-sm font-medium text-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 w-32 truncate"
+          className="bg-transparent text-sm font-medium text-ripple-text focus:outline-none focus:ring-1 focus:ring-ripple-cyan rounded px-1 w-32 truncate"
         />
         <button
           onClick={() => deleteTrack(track.id)}
-          className="opacity-0 group-hover:opacity-100 p-1 text-zinc-500 hover:text-red-400 transition-opacity"
+          className="opacity-0 group-hover:opacity-100 p-1 text-ripple-muted hover:text-red-400 transition-opacity"
           title="Delete Track"
         >
           <Trash2 size={14} />
@@ -59,7 +59,7 @@ export default function TrackHeader({ track }: Props) {
         <button
           onClick={handleMute}
           className={`w-8 h-6 rounded text-xs font-bold transition-colors ${
-            track.muted ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+            track.muted ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-ripple-cyan/10 text-ripple-muted hover:bg-ripple-cyan/20 hover:text-ripple-text'
           }`}
         >
           M
@@ -67,7 +67,7 @@ export default function TrackHeader({ track }: Props) {
         <button
           onClick={handleSolo}
           className={`w-8 h-6 rounded text-xs font-bold transition-colors ${
-            track.solo ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+            track.solo ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' : 'bg-ripple-cyan/10 text-ripple-muted hover:bg-ripple-cyan/20 hover:text-ripple-text'
           }`}
         >
           S
@@ -76,9 +76,9 @@ export default function TrackHeader({ track }: Props) {
 
       <div className="flex items-center space-x-2 mt-2">
         {track.volume === 0 || track.muted ? (
-          <VolumeX size={14} className="text-zinc-500" />
+          <VolumeX size={14} className="text-ripple-muted" />
         ) : (
-          <Volume2 size={14} className="text-zinc-400" />
+          <Volume2 size={14} className="text-ripple-cyan" />
         )}
         <input
           type="range"
@@ -87,7 +87,7 @@ export default function TrackHeader({ track }: Props) {
           step="0.01"
           value={track.volume}
           onChange={handleVolumeChange}
-          className="flex-1 h-1 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+          className="flex-1 h-1 bg-ripple-cyan/20 rounded-lg appearance-none cursor-pointer accent-ripple-cyan"
         />
       </div>
     </div>

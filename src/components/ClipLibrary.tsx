@@ -43,12 +43,12 @@ export default function ClipLibrary() {
   };
 
   return (
-    <div className="w-64 bg-zinc-800 border-r border-zinc-700 flex flex-col shrink-0">
-      <div className="p-4 border-b border-zinc-700">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Clip Library</h2>
+    <div className="w-64 bg-ripple-panel border-r border-ripple-cyan/20 flex flex-col shrink-0">
+      <div className="p-4 border-b border-ripple-cyan/20">
+        <h2 className="text-sm font-semibold text-ripple-cyan uppercase tracking-wider mb-3">Clip Library</h2>
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-zinc-700 hover:bg-zinc-600 rounded text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center space-x-2 py-2 px-4 bg-ripple-cyan/10 hover:bg-ripple-cyan/20 text-ripple-cyan rounded text-sm font-medium transition-colors"
         >
           <Upload size={16} />
           <span>Import Audio</span>
@@ -69,21 +69,21 @@ export default function ClipLibrary() {
             key={clip.id}
             draggable
             onDragStart={(e) => handleDragStart(e, clip.id)}
-            className="flex items-center space-x-3 p-3 bg-zinc-900/50 hover:bg-zinc-700 rounded cursor-grab active:cursor-grabbing group transition-colors border border-zinc-700/50"
+            className="flex items-center space-x-3 p-3 bg-ripple-bg/50 hover:bg-ripple-cyan/10 rounded cursor-grab active:cursor-grabbing group transition-colors border border-ripple-cyan/10"
           >
-            <FileAudio size={18} className="text-zinc-500 group-hover:text-emerald-400" />
+            <FileAudio size={18} className="text-ripple-muted group-hover:text-ripple-cyan" />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium truncate text-zinc-300 group-hover:text-white">
+              <div className="text-sm font-medium truncate text-ripple-text group-hover:text-white">
                 {clip.filename}
               </div>
-              <div className="text-xs text-zinc-500 font-mono">
+              <div className="text-xs text-ripple-muted font-mono">
                 {clip.duration.toFixed(2)}s
               </div>
             </div>
           </div>
         ))}
         {Object.keys(clips).length === 0 && (
-          <div className="text-center p-4 text-sm text-zinc-500 italic">
+          <div className="text-center p-4 text-sm text-ripple-muted italic">
             No clips imported yet.
           </div>
         )}

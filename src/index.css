@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+@theme {
+  --color-ripple-bg: #0b0f19;
+  --color-ripple-panel: #131a2b;
+  --color-ripple-cyan: #00e5ff;
+  --color-ripple-purple: #b400ff;
+  --color-ripple-pink: #ff00ff;
+  --color-ripple-text: #e2e8f0;
+  --color-ripple-muted: #64748b;
+}
+
+body {
+  background-color: var(--color-ripple-bg);
+  color: var(--color-ripple-text);
+}

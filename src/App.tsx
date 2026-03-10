@@ -3,21 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Toolbar from './components/Toolbar';
 import ClipLibrary from './components/ClipLibrary';
 import Timeline from './components/Timeline';
+import AboutModal from './components/AboutModal';
 
 export default function App() {
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+
   return (
-    <div className="flex flex-col h-screen bg-zinc-900 text-zinc-100 font-sans overflow-hidden">
-      <Toolbar />
+    <div className="flex flex-col h-screen bg-ripple-bg text-ripple-text font-sans overflow-hidden">
+      <Toolbar onOpenAbout={() => setIsAboutOpen(true)} />
       <div className="flex flex-1 overflow-hidden">
         <ClipLibrary />
-        <div className="flex-1 flex flex-col relative overflow-hidden bg-zinc-950">
+        <div className="flex-1 flex flex-col relative overflow-hidden bg-ripple-bg">
           <Timeline />
         </div>
       </div>
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
     </div>
   );
 }

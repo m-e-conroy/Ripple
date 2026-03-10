@@ -93,14 +93,14 @@ export default function Timeline() {
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full overflow-hidden bg-zinc-950">
+    <div className="flex flex-col flex-1 h-full overflow-hidden bg-ripple-bg">
       <div 
         className="flex-1 overflow-auto relative flex flex-col"
         ref={scrollContainerRef}
       >
         {/* Ruler Row */}
-        <div className="h-8 bg-zinc-800 border-b border-zinc-700 flex shrink-0 sticky top-0 z-50 w-max min-w-full">
-          <div className="w-64 border-r border-zinc-700 shrink-0 bg-zinc-800 sticky left-0 z-50" />
+        <div className="h-8 bg-ripple-panel border-b border-ripple-cyan/20 flex shrink-0 sticky top-0 z-50 w-max min-w-full">
+          <div className="w-64 border-r border-ripple-cyan/20 shrink-0 bg-ripple-panel sticky left-0 z-50" />
           <div
             className="relative cursor-pointer"
             onMouseDown={handleTimelineMouseDown}
@@ -110,20 +110,20 @@ export default function Timeline() {
             {markers.map((time) => (
               <div
                 key={time}
-                className="absolute top-0 bottom-0 border-l border-zinc-700/50 flex flex-col justify-end pb-1 px-1"
+                className="absolute top-0 bottom-0 border-l border-ripple-cyan/20 flex flex-col justify-end pb-1 px-1"
                 style={{ left: `${time * pixelsPerSecond}px` }}
               >
-                <span className="text-[10px] text-zinc-500 font-mono select-none">
+                <span className="text-[10px] text-ripple-muted font-mono select-none">
                   {time}s
                 </span>
               </div>
             ))}
             {/* Playhead */}
             <div
-              className="absolute top-0 bottom-0 w-px bg-emerald-500 z-50 pointer-events-none"
+              className="absolute top-0 bottom-0 w-px bg-ripple-cyan z-50 pointer-events-none"
               style={{ left: `${playheadPosition * pixelsPerSecond}px` }}
             >
-              <div className="absolute top-0 -translate-x-1/2 w-3 h-3 bg-emerald-500 rounded-full" />
+              <div className="absolute top-0 -translate-x-1/2 w-3 h-3 bg-ripple-cyan rounded-full shadow-[0_0_8px_rgba(0,229,255,0.8)]" />
             </div>
           </div>
         </div>
@@ -131,12 +131,12 @@ export default function Timeline() {
         {/* Tracks Area */}
         <div className="flex-1 relative w-max min-w-full">
           {tracks.map((track) => (
-            <div key={track.id} className="track-row flex h-32 border-b border-zinc-800/50 group">
+            <div key={track.id} className="track-row flex h-32 border-b border-ripple-cyan/10 group">
               <div className="sticky left-0 z-40 shrink-0 h-full">
                 <TrackHeader track={track} />
               </div>
               <div
-                className="relative bg-zinc-900/20 hover:bg-zinc-900/40 transition-colors"
+                className="relative bg-ripple-panel/30 hover:bg-ripple-panel/50 transition-colors"
                 style={{ width: `${timelineWidth}px` }}
                 onDrop={(e) => handleDrop(e, track.id)}
                 onDragOver={handleDragOver}
@@ -145,7 +145,7 @@ export default function Timeline() {
                 
                 {/* Playhead line extending through tracks */}
                 <div
-                  className="absolute top-0 bottom-0 w-px bg-emerald-500/50 z-30 pointer-events-none"
+                  className="absolute top-0 bottom-0 w-px bg-ripple-cyan/50 z-30 pointer-events-none"
                   style={{ left: `${playheadPosition * pixelsPerSecond}px` }}
                 />
               </div>

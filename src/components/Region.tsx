@@ -200,12 +200,12 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
       ref={containerRef}
       data-region-id={region.id}
       className={`region-draggable absolute top-1 bottom-1 rounded-md border overflow-hidden cursor-grab active:cursor-grabbing group ${
-        isSelected ? 'border-emerald-400 shadow-[0_0_0_1px_rgba(52,211,153,1)] z-20' : 'border-zinc-600 z-10'
+        isSelected ? 'border-ripple-cyan shadow-[0_0_0_1px_rgba(0,229,255,1)] z-20' : 'border-ripple-cyan/30 z-10'
       } ${isDragging ? 'opacity-80' : 'opacity-100'}`}
       style={{
         left: `${region.startTime * pixelsPerSecond}px`,
         width: `${region.duration * pixelsPerSecond}px`,
-        backgroundColor: 'rgba(16, 185, 129, 0.1)', // emerald-500 with opacity
+        backgroundColor: 'rgba(0, 229, 255, 0.1)', // ripple-cyan with opacity
       }}
       onClick={(e) => {
         e.stopPropagation();
@@ -213,7 +213,7 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
       }}
     >
       {/* Clip Name */}
-      <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-zinc-900/80 text-[10px] text-zinc-300 font-mono truncate border-b border-zinc-700/50 z-10 flex justify-between items-center">
+      <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-ripple-panel/80 text-[10px] text-ripple-text font-mono truncate border-b border-ripple-cyan/20 z-10 flex justify-between items-center">
         <span>{clip?.filename || 'Unknown Clip'}</span>
         {isSelected && (
           <button 
@@ -231,8 +231,8 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
       </div>
 
       {/* Resize Handles */}
-      <div className="absolute top-0 bottom-0 left-0 w-2 cursor-ew-resize bg-black/0 hover:bg-emerald-400/50 transition-colors z-20" />
-      <div className="absolute top-0 bottom-0 right-0 w-2 cursor-ew-resize bg-black/0 hover:bg-emerald-400/50 transition-colors z-20" />
+      <div className="absolute top-0 bottom-0 left-0 w-2 cursor-ew-resize bg-black/0 hover:bg-ripple-cyan/50 transition-colors z-20" />
+      <div className="absolute top-0 bottom-0 right-0 w-2 cursor-ew-resize bg-black/0 hover:bg-ripple-cyan/50 transition-colors z-20" />
     </div>
   );
 }
@@ -254,7 +254,12 @@ function WaveformCanvas({ clip, region, pixelsPerSecond }: { clip: any, region: 
     canvas.height = height;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#10b981'; // emerald-500
+    
+    // Create gradient for waveform
+    const gradient = ctx.createLinearGradient(0, 0, width, 0);
+    gradient.addColorStop(0, '#00e5ff'); // ripple-cyan
+    gradient.addColorStop(1, '#b400ff'); // ripple-purple
+    ctx.fillStyle = gradient;
 
     const channelData = clip.buffer.getChannelData(0); // Use left channel for visualization
     const sampleRate = clip.buffer.sampleRate;
