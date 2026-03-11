@@ -221,22 +221,74 @@ class AudioEngine {
 
         const source = this.ctx.createBufferSource();
         source.buffer = clip.buffer;
-        source.connect(chain!.fxChain.input);
+        
+        // Create Region Gain for Fades
+        const regionGain = this.ctx.createGain();
+        source.connect(regionGain);
+        regionGain.connect(chain!.fxChain.input);
 
         let startDelay = 0;
         let offset = region.clipOffset;
         let duration = region.duration;
+        let playheadOffsetInRegion = 0;
 
         if (region.startTime < playheadPosition) {
           // Region started before playhead, so start immediately with an offset
-          offset += (playheadPosition - region.startTime);
-          duration -= (playheadPosition - region.startTime);
+          playheadOffsetInRegion = playheadPosition - region.startTime;
+          offset += playheadOffsetInRegion;
+          duration -= playheadOffsetInRegion;
         } else {
           // Region starts in the future
           startDelay = region.startTime - playheadPosition;
         }
 
-        source.start(this.ctx.currentTime + startDelay, offset, duration);
+        const scheduledStartTime = this.ctx.currentTime + startDelay;
+        const scheduledEndTime = scheduledStartTime + duration;
+        
+        const fadeIn = region.fadeInDuration || 0;
+        const fadeOut = region.fadeOutDuration || 0;
+
+        // Apply Fades
+        if (playheadOffsetInRegion > 0) {
+          // Playback started inside the region
+          if (playheadOffsetInRegion < fadeIn) {
+            // Started inside fade-in
+            const currentGain = playheadOffsetInRegion / fadeIn;
+            regionGain.gain.setValueAtTime(currentGain, this.ctx.currentTime);
+            regionGain.gain.linearRampToValueAtTime(1, this.ctx.currentTime + (fadeIn - playheadOffsetInRegion));
+            
+            // Apply fade out at the end
+            regionGain.gain.setValueAtTime(1, scheduledEndTime - fadeOut);
+            regionGain.gain.linearRampToValueAtTime(0, scheduledEndTime);
+          } else if (playheadOffsetInRegion > region.duration - fadeOut) {
+            // Started inside fade-out
+            const fadeOutProgress = playheadOffsetInRegion - (region.duration - fadeOut);
+            const currentGain = 1 - (fadeOutProgress / fadeOut);
+            regionGain.gain.setValueAtTime(currentGain, this.ctx.currentTime);
+            regionGain.gain.linearRampToValueAtTime(0, scheduledEndTime);
+          } else {
+            // Started in the middle (full volume)
+            regionGain.gain.setValueAtTime(1, this.ctx.currentTime);
+            // Apply fade out at the end
+            regionGain.gain.setValueAtTime(1, scheduledEndTime - fadeOut);
+            regionGain.gain.linearRampToValueAtTime(0, scheduledEndTime);
+          }
+        } else {
+          // Playback started before the region, apply normal fades
+          regionGain.gain.setValueAtTime(0, scheduledStartTime);
+          if (fadeIn > 0) {
+            regionGain.gain.linearRampToValueAtTime(1, scheduledStartTime + fadeIn);
+          } else {
+            regionGain.gain.setValueAtTime(1, scheduledStartTime);
+          }
+          
+          if (fadeOut > 0) {
+            regionGain.gain.setValueAtTime(1, scheduledEndTime - fadeOut);
+            regionGain.gain.linearRampToValueAtTime(0, scheduledEndTime);
+          }
+        }
+
+        source.start(scheduledStartTime, offset, duration);
         sources.push(source);
       });
 
@@ -329,12 +381,32 @@ class AudioEngine {
 
         const source = offlineCtx.createBufferSource();
         source.buffer = clip.buffer;
-        source.connect(fxChain.input);
+        
+        // Create Region Gain for Fades
+        const regionGain = offlineCtx.createGain();
+        source.connect(regionGain);
+        regionGain.connect(fxChain.input);
         
         // Calculate how much of the region fits within the duration
         const availableDuration = duration - region.startTime;
         const actualDuration = Math.min(region.duration, availableDuration);
         
+        const fadeIn = region.fadeInDuration || 0;
+        const fadeOut = region.fadeOutDuration || 0;
+        
+        // Apply Fades
+        regionGain.gain.setValueAtTime(0, region.startTime);
+        if (fadeIn > 0) {
+          regionGain.gain.linearRampToValueAtTime(1, region.startTime + fadeIn);
+        } else {
+          regionGain.gain.setValueAtTime(1, region.startTime);
+        }
+        
+        if (fadeOut > 0) {
+          regionGain.gain.setValueAtTime(1, region.startTime + actualDuration - fadeOut);
+          regionGain.gain.linearRampToValueAtTime(0, region.startTime + actualDuration);
+        }
+
         source.start(region.startTime, region.clipOffset, actualDuration);
       });
     });
@@ -372,12 +444,32 @@ class AudioEngine {
 
         const source = offlineCtx.createBufferSource();
         source.buffer = clip.buffer;
-        source.connect(fxChain.input);
+        
+        // Create Region Gain for Fades
+        const regionGain = offlineCtx.createGain();
+        source.connect(regionGain);
+        regionGain.connect(fxChain.input);
         
         // Calculate how much of the region fits within the duration
         const availableDuration = duration - region.startTime;
         const actualDuration = Math.min(region.duration, availableDuration);
         
+        const fadeIn = region.fadeInDuration || 0;
+        const fadeOut = region.fadeOutDuration || 0;
+        
+        // Apply Fades
+        regionGain.gain.setValueAtTime(0, region.startTime);
+        if (fadeIn > 0) {
+          regionGain.gain.linearRampToValueAtTime(1, region.startTime + fadeIn);
+        } else {
+          regionGain.gain.setValueAtTime(1, region.startTime);
+        }
+        
+        if (fadeOut > 0) {
+          regionGain.gain.setValueAtTime(1, region.startTime + actualDuration - fadeOut);
+          regionGain.gain.linearRampToValueAtTime(0, region.startTime + actualDuration);
+        }
+
         source.start(region.startTime, region.clipOffset, actualDuration);
       });
     });

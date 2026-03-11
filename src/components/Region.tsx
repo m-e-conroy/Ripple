@@ -25,6 +25,7 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
 
     interact(el)
       .draggable({
+        ignoreFrom: '.fade-handle, .delete-btn, .resize-handle-l, .resize-handle-r',
         inertia: false,
         autoScroll: true,
         listeners: {
@@ -101,7 +102,7 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
         }
       })
       .resizable({
-        edges: { left: true, right: true, bottom: false, top: false },
+        edges: { left: '.resize-handle-l', right: '.resize-handle-r', bottom: false, top: false },
         listeners: {
           start(event) {
             const target = event.target;
@@ -194,6 +195,8 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
   }, [region.id, region.startTime, region.duration, region.clipOffset, pixelsPerSecond, selectRegion, updateRegion]);
 
   const isSelected = selectedRegionId === region.id;
+  const fadeInWidth = (region.fadeInDuration || 0) * pixelsPerSecond;
+  const fadeOutWidth = (region.fadeOutDuration || 0) * pixelsPerSecond;
 
   return (
     <div
@@ -218,7 +221,7 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
         {isSelected && (
           <button 
             onClick={(e) => { e.stopPropagation(); deleteRegion(region.id); }}
-            className="text-red-400 hover:text-red-300"
+            className="delete-btn text-red-400 hover:text-red-300"
           >
             ×
           </button>
@@ -230,9 +233,92 @@ export default function RegionComponent({ region, pixelsPerSecond }: Props) {
         <WaveformCanvas clip={clip} region={region} pixelsPerSecond={pixelsPerSecond} />
       </div>
 
+      {/* Fade Overlays */}
+      <svg className="absolute top-0 left-0 w-full h-full pointer-events-none z-10">
+        {/* Fade In Overlay */}
+        {fadeInWidth > 0 && (
+          <polygon 
+            points={`0,0 ${fadeInWidth},0 0,100`} 
+            fill="rgba(0,0,0,0.5)" 
+            preserveAspectRatio="none"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+        {/* Fade Out Overlay */}
+        {fadeOutWidth > 0 && (
+          <polygon 
+            points={`${region.duration * pixelsPerSecond - fadeOutWidth},0 ${region.duration * pixelsPerSecond},0 ${region.duration * pixelsPerSecond},100`} 
+            fill="rgba(0,0,0,0.5)" 
+            preserveAspectRatio="none"
+          />
+        )}
+      </svg>
+
+      {/* Fade Handles */}
+      <div 
+        className="fade-handle absolute top-0 w-3 h-3 bg-white/80 cursor-ew-resize z-30 rounded-br-sm opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ left: fadeInWidth }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const startX = e.clientX;
+          const startFadeIn = region.fadeInDuration || 0;
+          
+          const onMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaTime = deltaX / pixelsPerSecond;
+            let newFadeIn = startFadeIn + deltaTime;
+            
+            // Clamp between 0 and (duration - fadeOut)
+            const maxFadeIn = region.duration - (region.fadeOutDuration || 0);
+            newFadeIn = Math.max(0, Math.min(newFadeIn, maxFadeIn));
+            
+            updateRegion(region.id, { fadeInDuration: newFadeIn });
+          };
+          
+          const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+          };
+          
+          window.addEventListener('mousemove', onMouseMove);
+          window.addEventListener('mouseup', onMouseUp);
+        }}
+      />
+      <div 
+        className="fade-handle absolute top-0 w-3 h-3 bg-white/80 cursor-ew-resize z-30 rounded-bl-sm opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ right: fadeOutWidth }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const startX = e.clientX;
+          const startFadeOut = region.fadeOutDuration || 0;
+          
+          const onMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = startX - moveEvent.clientX; // Reversed because we are dragging from right
+            const deltaTime = deltaX / pixelsPerSecond;
+            let newFadeOut = startFadeOut + deltaTime;
+            
+            // Clamp between 0 and (duration - fadeIn)
+            const maxFadeOut = region.duration - (region.fadeInDuration || 0);
+            newFadeOut = Math.max(0, Math.min(newFadeOut, maxFadeOut));
+            
+            updateRegion(region.id, { fadeOutDuration: newFadeOut });
+          };
+          
+          const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+          };
+          
+          window.addEventListener('mousemove', onMouseMove);
+          window.addEventListener('mouseup', onMouseUp);
+        }}
+      />
+
       {/* Resize Handles */}
-      <div className="absolute top-0 bottom-0 left-0 w-2 cursor-ew-resize bg-black/0 hover:bg-ripple-cyan/50 transition-colors z-20" />
-      <div className="absolute top-0 bottom-0 right-0 w-2 cursor-ew-resize bg-black/0 hover:bg-ripple-cyan/50 transition-colors z-20" />
+      <div className="resize-handle-l absolute top-0 bottom-0 left-0 w-2 cursor-ew-resize bg-black/0 hover:bg-ripple-cyan/50 transition-colors z-20" />
+      <div className="resize-handle-r absolute top-0 bottom-0 right-0 w-2 cursor-ew-resize bg-black/0 hover:bg-ripple-cyan/50 transition-colors z-20" />
     </div>
   );
 }

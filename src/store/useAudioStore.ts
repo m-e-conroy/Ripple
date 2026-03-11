@@ -16,6 +16,8 @@ export interface Region {
   startTime: number;
   clipOffset: number;
   duration: number;
+  fadeInDuration?: number;
+  fadeOutDuration?: number;
 }
 
 export interface TrackFX {
@@ -268,6 +270,8 @@ export const useAudioStore = create<AudioState>()(
             const region1: Region = {
               ...region,
               duration: splitPoint,
+              fadeInDuration: Math.min(region.fadeInDuration || 0, splitPoint),
+              fadeOutDuration: 0,
             };
             
             const region2: Region = {
@@ -276,6 +280,8 @@ export const useAudioStore = create<AudioState>()(
               startTime: playheadPosition,
               clipOffset: region.clipOffset + splitPoint,
               duration: region.duration - splitPoint,
+              fadeInDuration: 0,
+              fadeOutDuration: Math.min(region.fadeOutDuration || 0, region.duration - splitPoint),
             };
 
             const newRegions = [...t.regions];
