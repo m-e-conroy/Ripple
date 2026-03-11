@@ -9,6 +9,7 @@ import ClipLibrary from './components/ClipLibrary';
 import Timeline from './components/Timeline';
 import AboutModal from './components/AboutModal';
 import FXPanel from './components/FXPanel';
+import DrumMachineModal from './components/DrumMachineModal';
 import { useAudioStore } from './store/useAudioStore';
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
         </div>
       </div>
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <DrumMachineModal />
     </div>
   );
 }

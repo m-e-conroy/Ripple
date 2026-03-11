@@ -121,6 +121,13 @@ export default function Toolbar({ onOpenAbout }: ToolbarProps) {
         </div>
 
         <div className="flex items-center space-x-4">
+          <button
+            onClick={() => useAudioStore.getState().setDrumMachineOpen(true)}
+            className="flex items-center space-x-2 px-3 py-1.5 bg-ripple-purple/20 border border-ripple-purple/50 hover:bg-ripple-purple/40 text-ripple-purple rounded font-medium transition-colors text-sm"
+          >
+            <span className="text-lg leading-none">🥁</span>
+            <span>Beat Maker</span>
+          </button>
           <div className="text-xs text-ripple-muted font-mono">
             {formatTime(projectDuration)}
           </div>

@@ -50,6 +50,7 @@ export interface AudioState {
   selectedFxTrackId: string | null;
   duration: number;
   pixelsPerSecond: number;
+  isDrumMachineOpen: boolean;
 
   // Actions
   addClip: (clip: AudioClip) => void;
@@ -64,6 +65,7 @@ export interface AudioState {
   setIsPlaying: (isPlaying: boolean) => void;
   selectRegion: (id: string | null) => void;
   setSelectedFxTrack: (id: string | null) => void;
+  setDrumMachineOpen: (isOpen: boolean) => void;
   copyRegion: () => void;
   pasteRegion: () => void;
   splitRegion: () => void;
@@ -103,6 +105,7 @@ export const useAudioStore = create<AudioState>()(
       selectedFxTrackId: null,
       duration: 60, // Default 60 seconds timeline
       pixelsPerSecond: 50,
+      isDrumMachineOpen: false,
 
       addClip: (clip) =>
         set((state) => ({ clips: { ...state.clips, [clip.id]: clip } })),
@@ -205,6 +208,8 @@ export const useAudioStore = create<AudioState>()(
       selectRegion: (id) => set({ selectedRegionId: id }),
 
       setSelectedFxTrack: (id) => set({ selectedFxTrackId: id }),
+
+      setDrumMachineOpen: (isOpen) => set({ isDrumMachineOpen: isOpen }),
 
       copyRegion: () => {
         const { tracks, selectedRegionId } = get();
